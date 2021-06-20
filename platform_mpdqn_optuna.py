@@ -191,9 +191,9 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
 def optimized_para(trail):
 	return {
 		'seed' : int(trail.suggest_int('seed', 1,2)), 
-		'episodes' :  int(trail.suggest_categorical('episodes', ['100','200'])), 
+		'episodes' :  10000, 
 		'evaluation_episodes' : 1000, 
-		'batch_size' : 128, 
+		'batch_size' : int(trail.suggest_categorical('batch_size', ['128','64'])),  #128, 
 		'gamma' : 0.9,
 		'inverting_gradients' : True, 
 		'initial_memory_threshold' : 500,
@@ -202,8 +202,8 @@ def optimized_para(trail):
 		'tau_actor' : 0.1, 
 		'tau_actor_param' : 0.001, 
 		'use_ornstein_noise' : True, 
-		'learning_rate_actor' : 0.001,
-		'learning_rate_actor_param' : 0.0001, 
+		'learning_rate_actor' : float(trail.suggest_categorical('learning_rate_actor', ['0.01','0.001'])), #0.001,
+		'learning_rate_actor_param' : float(trail.suggest_categorical('learning_rate_actor_param', ['0.0001','0.001'])), #0.0001, 
 		'epsilon_final' : 0.01, 
 		'zero_index_gradients' : False, 
 		'initialise_params' : True, 
