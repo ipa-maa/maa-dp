@@ -39,22 +39,12 @@ def evaluate(env, agent, episodes=1000):
     return np.array(returns)
 
 
-def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradients, initial_memory_threshold,
+def run(seed, episodes, batch_size, gamma, inverting_gradients, initial_memory_threshold,
         replay_memory_size, epsilon_steps, tau_actor, tau_actor_param, use_ornstein_noise, learning_rate_actor,
         learning_rate_actor_param, epsilon_final, zero_index_gradients, initialise_params, scale_actions,
-        clip_grad, split, indexed, layers, multipass, weighted, average, random_weighted, render_freq,
-        save_freq, save_dir, save_frames, visualise, action_input_layer, title):
+        clip_grad, split, indexed, layers, multipass, weighted, average, random_weighted,
+        save_freq, save_dir, save_frames, action_input_layer, title):
 
-  #  if save_freq > 0 and save_dir:
-  #      save_dir = os.path.join(save_dir, title + "{}".format(str(seed)))
-  #      os.makedirs(save_dir, exist_ok=True)
-  #  assert not (save_frames and visualise)
-  #  if visualise:
-  #      assert render_freq > 0
-  #  if save_frames:
-  #      assert render_freq > 0
-  #      vidir = os.path.join(save_dir, "frames")
-  #      os.makedirs(vidir, exist_ok=True)
 
     env = gym.make('Platform-v0')
     initial_params_ = [3., 10., 400.]
@@ -75,8 +65,6 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
 
     print(env.observation_space)
 
-    from agents.pdqn import PDQNAgent
-    from agents.pdqn_split import SplitPDQNAgent
     from agents.pdqn_multipass import MultiPassPDQNAgent
     
     agent_class = MultiPassPDQNAgent
@@ -118,18 +106,15 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
     total_reward = 0.
     returns = []
     start_time = time.time()
-    video_index = 0
+    # video_index = 0
     # agent.epsilon_final = 0.
     # agent.epsilon = 0.
     # agent.noise = None
 
     for i in range(episodes):
-        if save_freq > 0 and save_dir and i % save_freq == 0:
-            agent.save_models(os.path.join(save_dir, str(i)))
         state, _ = env.reset()
         state = np.array(state, dtype=np.float32, copy=False)
-        if visualise and i % render_freq == 0:
-            env.render()
+       
 
         act, act_param, all_action_parameters = agent.act(state)
         action = pad_action(act, act_param)
@@ -151,15 +136,10 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
             state = next_state
 
             episode_reward += reward
-            if visualise and i % render_freq == 0:
-                env.render()
 
             if terminal:
                 break
         agent.end_episode()
-
-       # if save_frames and i % render_freq == 0:
-       #     video_index = env.unwrapped.save_render_states(vidir, title, video_index)
 
         returns.append(episode_reward)
         total_reward += episode_reward
@@ -168,31 +148,24 @@ def run(seed, episodes, evaluation_episodes, batch_size, gamma, inverting_gradie
     end_time = time.time()
     print("Took %.2f seconds" % (end_time - start_time))
     env.close()
-    if save_freq > 0 and save_dir:
-        agent.save_models(os.path.join(save_dir, str(i)))
 
     returns = env.get_episode_rewards()
     print("Ave. return =", sum(returns) / len(returns))
     print("Ave. last 100 episode return =", sum(returns[-100:]) / 100.)
-
-    np.save(os.path.join(dir, title + "{}".format(str(seed))),returns)
-
-    if evaluation_episodes > 0:
-        print("Evaluating agent over {} episodes".format(evaluation_episodes))
-        agent.epsilon_final = 0.
-        agent.epsilon = 0.
-        agent.noise = None
-        evaluation_returns = evaluate(env, agent, evaluation_episodes)
-        print("Ave. evaluation return =", sum(evaluation_returns) / len(evaluation_returns))
-        np.save(os.path.join(dir, title + "{}e".format(str(seed))), evaluation_returns)
         
     return sum(returns[-100:]) / 100.
 
+
 def optimized_para(trail):
-	return {
+    
+    n_layers = trail.suggest_int('n_layers',1,3)
+    layers = []
+    for i in range(n_layers):
+        layers.append(trail.suggest_int('n_units_l{}'.format(i),32,128)) 
+
+    return {
 		'seed' : int(trail.suggest_int('seed', 1,2)), 
-		'episodes' :  10000, 
-		'evaluation_episodes' : 1000, 
+		'episodes' :  1000,
 		'batch_size' : int(trail.suggest_categorical('batch_size', ['128','64'])),  #128, 
 		'gamma' : 0.9,
 		'inverting_gradients' : True, 
@@ -211,20 +184,17 @@ def optimized_para(trail):
 		'clip_grad' : 10.0, 
 		'split' : False, 
 		'indexed' : False, 
-		'layers' : [128,], 
+		'layers' : tuple(layers), 
 		'multipass' : True, 
 		'weighted' : False, 
 		'average' : False, 
-		'random_weighted' : False, 
-		'render_freq' : 100, 
+		'random_weighted' : False,
 		'save_freq' : 0, 
 		'save_dir' : "results/platform", 
-		'save_frames' : False, 
-		'visualise' : True, 
+		'save_frames' : False,
 		'action_input_layer' : 0,
 		'title'  : "PDDQN"
 		}
-
 
 def optimize_hyperparm(trail):
         model_params =optimized_para(trail)
@@ -232,4 +202,4 @@ def optimize_hyperparm(trail):
         
 study = optuna.create_study(direction='maximize')
 
-study.optimize(optimize_hyperparm, n_trials=4, n_jobs=1)
+study.optimize(optimize_hyperparm, n_trials=10)
