@@ -1,3 +1,3 @@
 # maa-dp
 
-Repository for collaboration of ipa-maa and ipa-maa-dp.
+Repository for cooperation of ipa-maa and ipa-maa-dp.
