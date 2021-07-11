@@ -117,7 +117,7 @@ class HyperSearch:
         """
 
         # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
-        self.study_name = "platform"+self.search_size  # Unique identifier of the study.
+        self.study_name = "platform-"+self.search_size  # Unique identifier of the study.
         self.storage_name = "sqlite:///{}.db".format(self.study_name)
 
         self.sampler = optuna.samplers.TPESampler(seed=10)
